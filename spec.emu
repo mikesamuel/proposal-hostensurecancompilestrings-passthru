@@ -43,7 +43,7 @@ has runtime-type-information.
 
 <h2>Changes to CreateDynamicFunction</h2>
 
-<emu-clause id="sec-createdynamicfunction-patched" aoid="CreateDynamicFunction">
+<emu-clause id="sec-createdynamicfunction-new">
   <h1>Runtime Semantics: CreateDynamicFunction ( _constructor_, _newTarget_, _kind_, _args_ )</h1>
   <p>The abstract operation CreateDynamicFunction is called with arguments _constructor_, _newTarget_, _kind_, and _args_. _constructor_ is the constructor function that is performing this action, _newTarget_ is the constructor that `new` was initially applied to, _kind_ is either `"normal"`, `"generator"`, `"async"`, or `"async generator"`, and _args_ is a List containing the actual argument values that were passed to _constructor_. The following steps are taken:</p>
   <emu-alg>
@@ -133,9 +133,50 @@ has runtime-type-information.
   </emu-alg>
 </emu-clause>
 
+<h2>Changes to eval</h2>
+
+<emu-clause id="sec-eval-x">
+  <h1>eval ( _x_ )</h1>
+  <p>The `eval` function is the <dfn>%eval%</dfn> intrinsic object. When the `eval` function is called with one argument _x_, the following steps are taken:</p>
+  <emu-alg>
+    1. Assert: The execution context stack has at least two elements.
+    1. Let _callerContext_ be the second to top element of the execution context stack.
+    1. Let _callerRealm_ be _callerContext_'s Realm.
+    1. Let _calleeRealm_ be the current Realm Record.
+    1. Perform ? HostEnsureCanCompileStrings(_callerRealm_, _calleeRealm_<ins>, |Script|, _x_</ins>).
+    1. Return ? PerformEval(_x_, _calleeRealm_, *false*, *false*).
+  </emu-alg>
+</emu-clause>
+
+<h2>Changes to direct eval</h2>
+
+<emu-clause id="sec-function-calls-runtime-semantics-evaluation">
+  <h1>Runtime Semantics: Evaluation</h1>
+  <emu-grammar>CallExpression : CoverCallExpressionAndAsyncArrowHead</emu-grammar>
+  <emu-alg>
+    1. Let _expr_ be CoveredCallExpression of |CoverCallExpressionAndAsyncArrowHead|.
+    1. Let _memberExpr_ be the |MemberExpression| of _expr_.
+    1. Let _arguments_ be the |Arguments| of _expr_.
+    1. Let _ref_ be the result of evaluating _memberExpr_.
+    1. Let _func_ be ? GetValue(_ref_).
+    1. If Type(_ref_) is Reference and IsPropertyReference(_ref_) is *false* and GetReferencedName(_ref_) is `"eval"`, then
+      1. If SameValue(_func_, %eval%) is *true*, then
+        1. Let _argList_ be ? ArgumentListEvaluation of _arguments_.
+        1. If _argList_ has no elements, return *undefined*.
+        1. Let _evalText_ be the first element of _argList_.
+        1. If the source code matching this |CallExpression| is strict mode code, let _strictCaller_ be *true*. Otherwise let _strictCaller_ be *false*.
+        1. Let _evalRealm_ be the current Realm Record.
+        1. Perform ? HostEnsureCanCompileStrings(_evalRealm_, _evalRealm_<ins>, |Script|, _evalText_</ins>).
+        1. Return ? PerformEval(_evalText_, _evalRealm_, _strictCaller_, *true*).
+    1. Let _thisCall_ be this |CallExpression|.
+    1. Let _tailCall_ be IsInTailPosition(_thisCall_).
+    1. Return ? EvaluateCall(_func_, _ref_, _arguments_, _tailCall_).
+  </emu-alg>
+</emu-clause>
+
 <h2>Changes to HostEnsureCanCompileStrings</h2>
 
-<emu-clause id="sec-hostensurecancompilestrings" aoid="HostEnsureCanCompileStrings">
+<emu-clause id="sec-hostensurecancompilestrings-new">
   <h1>HostEnsureCanCompileStrings ( _callerRealm_, _calleeRealm_<ins>[, _goal_[, _bodyText_]]</ins>)</h1>
 
   <p>HostEnsureCanCompileStrings is an implementation-defined abstract operation that allows host environments to block certain ECMAScript functions which allow developers to compile strings into ECMAScript code.</p>
