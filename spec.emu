@@ -1,0 +1,151 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="stylesheet" href="./spec.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+<script src="./spec.js"></script>
+<pre class="metadata">
+title: HostEnsureCanCompileStrings Passthru
+stage: 0
+contributors: Mike Samuel
+</pre>
+
+The <a href="https://wicg.github.com/trusted-types/">Trusted Types proposal</a> seeks
+to double-check risky operations like code loading by checking the runtime type.
+
+The Function builtin, whether invoked via [[Construct]] or [[Apply]],
+interprets its last argument as a JS FunctionBody.
+
+Step 16 of <a href="https://www.ecma-international.org/ecma-262/#sec-createdynamicfunction">Runtime Semantics: CreateDynamicFunction</a> says
+
+<emu-alg>
+  16. Set *bodyText* to ? ToString(*bodyText*).
+</emu-alg>
+
+which loses information about whether the body is a
+<a href="https://wicg.github.io/trusted-types/dist/spec/#typedef-trustedscript">TrustedScript</a>
+preventing Trusted Types guards from allowing *TrustedScript*s from loading as code while
+preventing strings that might be attacker controlled from loading as code.
+
+Currently, the information available to the check is per-realm:
+
+<emu-alg>
+  5. Perform ? HostEnsureCanCompileStrings(*callerRealm*, *calleeRealm*).
+</emu-alg>
+
+<p>
+This proposal aims to provide additional context to HostEnsureCanCompileStrings,
+and reorder the steps in CreateDynamicFunction so that HostEnsureCanCompilerStrings
+has runtime-type-information.
+</p>
+
+1.  The production to use to parse *bodyText*.
+1.  The value of *bodyText* before coercion to a string.
+
+<h2>Changes to CreateDynamicFunction</h2>
+
+<emu-clause id="sec-createdynamicfunction-patched" aoid="CreateDynamicFunction">
+  <h1>Runtime Semantics: CreateDynamicFunction ( _constructor_, _newTarget_, _kind_, _args_ )</h1>
+  <p>The abstract operation CreateDynamicFunction is called with arguments _constructor_, _newTarget_, _kind_, and _args_. _constructor_ is the constructor function that is performing this action, _newTarget_ is the constructor that `new` was initially applied to, _kind_ is either `"normal"`, `"generator"`, `"async"`, or `"async generator"`, and _args_ is a List containing the actual argument values that were passed to _constructor_. The following steps are taken:</p>
+  <emu-alg>
+    1. Assert: The execution context stack has at least two elements.
+    1. Let _callerContext_ be the second to top element of the execution context stack.
+    1. Let _callerRealm_ be _callerContext_'s Realm.
+    1. Let _calleeRealm_ be the current Realm Record.
+    1. <del>Perform ? HostEnsureCanCompileStrings(_callerRealm_, _calleeRealm_).</del>
+    1. If _newTarget_ is *undefined*, set _newTarget_ to _constructor_.
+    1. If _kind_ is `"normal"`, then
+      1. Let _goal_ be the grammar symbol |FunctionBody[~Yield, ~Await]|.
+      1. Let _parameterGoal_ be the grammar symbol |FormalParameters[~Yield, ~Await]|.
+      1. Let _fallbackProto_ be `"%FunctionPrototype%"`.
+    1. Else if _kind_ is `"generator"`, then
+      1. Let _goal_ be the grammar symbol |GeneratorBody|.
+      1. Let _parameterGoal_ be the grammar symbol |FormalParameters[+Yield, ~Await]|.
+      1. Let _fallbackProto_ be `"%Generator%"`.
+    1. Else if _kind_ is `"async"`, then
+      1. Let _goal_ be the grammar symbol |AsyncFunctionBody|.
+      1. Let _parameterGoal_ be the grammar symbol |FormalParameters[~Yield, +Await]|.
+      1. Let _fallbackProto_ be `"%AsyncFunctionPrototype%"`.
+    1. Else,
+      1. Assert: _kind_ is `"async generator"`.
+      1. Let _goal_ be the grammar symbol |AsyncGeneratorBody|.
+      1. Let _parameterGoal_ be the grammar symbol |FormalParameters[+Yield, +Await]|.
+      1. Let _fallbackProto_ be `"%AsyncGenerator%"`.
+    1. Let _argCount_ be the number of elements in _args_.
+    1. <del>Let _P_ be the empty String.</del>
+    1. If _argCount_ = 0, let _bodyText_ be the empty String.
+    1. <del>Else if _argCount_ = 1, let _bodyText_ be _args_[0].</del>
+    1. Else _argCount_ <del>&gt;</del> <ins>&ge;</ins> 1,
+      1. <del>Let _firstArg_ be _args_[0]</del>.
+      1. <del>Set _P_ to ? ToString(_firstArg_).</del>
+      1. <del>Let _k_ be 1.
+      1. <del>Repeat, while _k_ &lt; _argCount_ - 1</del>
+        1. <del>Let _nextArg_ be _args_[_k_].</del>
+        1. <del>Let _nextArgString_ be ? ToString(_nextArg_).</del>
+        1. <del>Set _P_ to the string-concatenation of the previous value of _P_, `","` (a comma), and _nextArgString_.</del>
+        1. <del>Increase _k_ by 1.</del>
+      1. Let _bodyText_ be <del>_args_[_k_]</del> <ins>_argCount_ - 1</ins>.
+    1. <ins>Perform ? HostEnsureCanCompileStrings(_callerRealm_, _calleeRealm_, <b>_goal_, _bodyText_</b>).</ins>
+    1. <ins>Let _P_ be the empty String.</ins>
+    1. <ins>If _argCount_ &gt; 1,</ins>
+      1. <ins>Let _firstArg_ be _args_[0].</ins>
+      1. <ins>Set _P_ to ? ToString(_firstArg_).</ins>
+      1. <ins>Let _k_ be 1.</ins>
+      1. <ins>Repeat, while _k_ &lt; _argCount_ - 1</ins>
+        1. <ins>Let _nextArg_ be _args_[_k_].</ins>
+        1. <ins>Let _nextArgString_ be ? ToString(_nextArg_).</ins>
+        1. <ins>Set _P_ to the string-concatenation of the previous value of _P_, `","` (a comma), and _nextArgString_.</ins>
+        1. <ins>Increase _k_ by 1.</ins>
+    1. Set _bodyText_ to ? ToString(_bodyText_).
+    1. Let _parameters_ be the result of parsing _P_, interpreted as UTF-16 encoded Unicode text as described in <emu-xref href="#sec-ecmascript-language-types-string-type"></emu-xref>, using _parameterGoal_ as the goal symbol. Throw a *SyntaxError* exception if the parse fails.
+    1. Let _body_ be the result of parsing _bodyText_, interpreted as UTF-16 encoded Unicode text as described in <emu-xref href="#sec-ecmascript-language-types-string-type"></emu-xref>, using _goal_ as the goal symbol. Throw a *SyntaxError* exception if the parse fails.
+    1. Let _strict_ be ContainsUseStrict of _body_.
+    1. If any static semantics errors are detected for _parameters_ or _body_, throw a *SyntaxError* or a *ReferenceError* exception, depending on the type of the error. If _strict_ is *true*, the Early Error rules for <emu-grammar>UniqueFormalParameters : FormalParameters</emu-grammar> are applied. Parsing and early error detection may be interweaved in an implementation-dependent manner.
+    1. If _strict_ is *true* and IsSimpleParameterList of _parameters_ is *false*, throw a *SyntaxError* exception.
+    1. If any element of the BoundNames of _parameters_ also occurs in the LexicallyDeclaredNames of _body_, throw a *SyntaxError* exception.
+    1. If _body_ Contains |SuperCall| is *true*, throw a *SyntaxError* exception.
+    1. If _parameters_ Contains |SuperCall| is *true*, throw a *SyntaxError* exception.
+    1. If _body_ Contains |SuperProperty| is *true*, throw a *SyntaxError* exception.
+    1. If _parameters_ Contains |SuperProperty| is *true*, throw a *SyntaxError* exception.
+    1. If _kind_ is `"generator"` or `"async generator"`, then
+      1. If _parameters_ Contains |YieldExpression| is *true*, throw a *SyntaxError* exception.
+    1. If _kind_ is `"async"` or `"async generator"`, then
+      1. If _parameters_ Contains |AwaitExpression| is *true*, throw a *SyntaxError* exception.
+    1. If _strict_ is *true*, then
+      1. If BoundNames of _parameters_ contains any duplicate elements, throw a *SyntaxError* exception.
+    1. Let _proto_ be ? GetPrototypeFromConstructor(_newTarget_, _fallbackProto_).
+    1. Let _F_ be FunctionAllocate(_proto_, _strict_, _kind_).
+    1. Let _realmF_ be _F_.[[Realm]].
+    1. Let _scope_ be _realmF_.[[GlobalEnv]].
+    1. Perform FunctionInitialize(_F_, ~Normal~, _parameters_, _body_, _scope_).
+    1. If _kind_ is `"generator"`, then
+      1. Let _prototype_ be ObjectCreate(%GeneratorPrototype%).
+      1. Perform DefinePropertyOrThrow(_F_, `"prototype"`, PropertyDescriptor { [[Value]]: _prototype_, [[Writable]]: *true*, [[Enumerable]]: *false*, [[Configurable]]: *false* }).
+    1. Else if _kind_ is `"async generator"`, then
+      1. Let _prototype_ be ObjectCreate(%AsyncGeneratorPrototype%).
+      1. Perform DefinePropertyOrThrow(_F_, `"prototype"`, PropertyDescriptor { [[Value]]: _prototype_, [[Writable]]: *true*, [[Enumerable]]: *false*, [[Configurable]]: *false* }).
+    1. Else if _kind_ is `"normal"`, perform MakeConstructor(_F_).
+    1. NOTE: Async functions are not constructable and do not have a [[Construct]] internal method or a `"prototype"` property.
+    1. Perform SetFunctionName(_F_, `"anonymous"`).
+    1. Let _prefix_ be the prefix associated with _kind_ in <a href="https://www.ecma-international.org/ecma-262/#table-dynamic-function-sourcetext-prefixes"></a>.
+    1. Let _sourceText_ be the string-concatenation of _prefix_, `" anonymous("`, _P_, 0x000A (LINE FEED), `") {"`, 0x000A (LINE FEED), _bodyText_, 0x000A (LINE FEED), and `"}"`.
+    1. Set _F_.[[SourceText]] to _sourceText_.
+    1. Return _F_.
+  </emu-alg>
+</emu-clause>
+
+<h2>Changes to HostEnsureCanCompileStrings</h2>
+
+<emu-clause id="sec-hostensurecancompilestrings" aoid="HostEnsureCanCompileStrings">
+  <h1>HostEnsureCanCompileStrings ( _callerRealm_, _calleeRealm_<ins>[, _goal_[, _bodyText_]]</ins>)</h1>
+
+  <p>HostEnsureCanCompileStrings is an implementation-defined abstract operation that allows host environments to block certain ECMAScript functions which allow developers to compile strings into ECMAScript code.</p>
+
+  <p>An implementation of HostEnsureCanCompileStrings may complete normally or abruptly. Any abrupt completions will be propagated to its callers. The default implementation of HostEnsureCanCompileStrings is to unconditionally return an empty normal completion.</p>
+
+  <emu-note><ins>_goal_ is the production which will be used to parse _bodyText_.  For example, if called via %Function% it might be the grammar symbol |FunctionBody[~Yield, ~Await]| and from %eval% it might be the grammar symbol |Script|.</ins></emu-note>
+
+  <emu-note><ins>Implementations of HostEnsureCanCompileStrings should not coerce _bodyText_ to a string
+  since callers will later do that and HostEnsureCanCompileStrings must not base security decisions
+  on both coercions producing the same string.
+  Clients may base security decisions on internal slots.</ins></emu-note>
+</emu-clause>
