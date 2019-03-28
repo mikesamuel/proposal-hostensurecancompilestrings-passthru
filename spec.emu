@@ -83,7 +83,7 @@ has runtime-type-information.
         1. <del>Let _nextArgString_ be ? ToString(_nextArg_).</del>
         1. <del>Set _P_ to the string-concatenation of the previous value of _P_, `","` (a comma), and _nextArgString_.</del>
         1. <del>Increase _k_ by 1.</del>
-      1. Let _bodyText_ be <del>_args_[_k_]</del> <ins>_argCount_ - 1</ins>.
+      1. Let _bodyText_ be _args_[<del>_k_</del> <ins>_argCount_ - 1</ins>].
     1. <ins>Perform ? HostEnsureCanCompileStrings(_callerRealm_, _calleeRealm_, <b>_goal_, _bodyText_</b>).</ins>
     1. <ins>Let _P_ be the empty String.</ins>
     1. <ins>If _argCount_ &gt; 1,</ins>
