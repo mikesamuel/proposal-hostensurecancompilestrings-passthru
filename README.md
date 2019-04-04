@@ -2,8 +2,8 @@
 
 ## Status
 
-Champion(s): *mikesamuel*
-Author(s): TBD
+Champion(s): mikesamuel <br>
+Author(s): mikesamuel <br>
 Stage: 0
 
 ## Motivation
@@ -78,10 +78,11 @@ inputs to %Function% and %eval% are [*TrustedScript*][TrustedScript].
 
 ## Possible spec language
 
-You can browse the [ecmarkup output](https://mikesamuel.github.io/proposal-hostensurecancompilestrings-passthru/)
-or browse the [source](https://github.com/mikesamuel/proposal-hostensurecancompilestrings-passthru/blob/master/spec.emu).
+You can browse the [ecmarkup output][] or browse the [source][].
 
 
 [core-js-example]: https://github.com/zloirock/core-js/blob/2a005abe68520248d4431cab70d86e40b55d6e98/packages/core-js/internals/global.js#L5
 [TT]: https://wicg.github.io/trusted-types/dist/spec/
 [TrustedScript]: https://wicg.github.io/trusted-types/dist/spec/#typedef-trustedscript
+[ecmarkup output]: https://mikesamuel.github.io/proposal-hostensurecancompilestrings-passthru/
+[source]: https://github.com/mikesamuel/proposal-hostensurecancompilestrings-passthru/blob/master/spec.emu

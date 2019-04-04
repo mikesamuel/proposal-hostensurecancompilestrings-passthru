@@ -84,7 +84,7 @@ has runtime-type-information.
         1. <del>Set _P_ to the string-concatenation of the previous value of _P_, `","` (a comma), and _nextArgString_.</del>
         1. <del>Increase _k_ by 1.</del>
       1. Let _bodyText_ be _args_[<del>_k_</del> <ins>_argCount_ - 1</ins>].
-    1. <ins>Perform ? HostEnsureCanCompileStrings(_callerRealm_, _calleeRealm_, <b>_goal_, _bodyText_</b>).</ins>
+    1. <ins>Set _bodyText_ to ! HostBeforeCompileValue(_callerRealm_, _calleeRealm_, <b>_goal_, _bodyText_</b>).</ins>
     1. <ins>Let _P_ be the empty String.</ins>
     1. <ins>If _argCount_ &gt; 1,</ins>
       1. <ins>Let _firstArg_ be _args_[0].</ins>
@@ -143,7 +143,8 @@ has runtime-type-information.
     1. Let _callerContext_ be the second to top element of the execution context stack.
     1. Let _callerRealm_ be _callerContext_'s Realm.
     1. Let _calleeRealm_ be the current Realm Record.
-    1. Perform ? HostEnsureCanCompileStrings(_callerRealm_, _calleeRealm_<ins>, |Script|, _x_</ins>).
+    1. <del>Perform ? HostEnsureCanCompileStrings</del><br>
+       <ins>Set _x_ to HostBeforeCompileValue</ins>(_callerRealm_, _calleeRealm_<ins>, |Script|, _x_</ins>).
     1. Return ? PerformEval(_x_, _calleeRealm_, *false*, *false*).
   </emu-alg>
 </emu-clause>
@@ -166,7 +167,8 @@ has runtime-type-information.
         1. Let _evalText_ be the first element of _argList_.
         1. If the source code matching this |CallExpression| is strict mode code, let _strictCaller_ be *true*. Otherwise let _strictCaller_ be *false*.
         1. Let _evalRealm_ be the current Realm Record.
-        1. Perform ? HostEnsureCanCompileStrings(_evalRealm_, _evalRealm_<ins>, |Script|, _evalText_</ins>).
+        1. <del>Perform ? HostEnsureCanCompileStrings</del><br>
+           <ins>Set _evalText_ to HostBeforeCompileValue</ins>(_evalRealm_, _evalRealm_<ins>, |Script|, _evalText_</ins>).
         1. Return ? PerformEval(_evalText_, _evalRealm_, _strictCaller_, *true*).
     1. Let _thisCall_ be this |CallExpression|.
     1. Let _tailCall_ be IsInTailPosition(_thisCall_).
@@ -176,17 +178,17 @@ has runtime-type-information.
 
 <h2>Changes to HostEnsureCanCompileStrings</h2>
 
-<emu-clause id="sec-hostensurecancompilestrings-new">
-  <h1>HostEnsureCanCompileStrings ( _callerRealm_, _calleeRealm_<ins>[, _goal_[, _bodyText_]]</ins>)</h1>
+<emu-clause id="sec-hostbeforecompilevalue">
+  <h1><del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> ( _callerRealm_, _calleeRealm_<ins>[, _goal_[, _bodyText_]]</ins>)</h1>
 
-  <p>HostEnsureCanCompileStrings is an implementation-defined abstract operation that allows host environments to block certain ECMAScript functions which allow developers to compile strings into ECMAScript code.</p>
+  <p><del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> is an implementation-defined abstract operation that allows host environments to block certain ECMAScript functions which allow developers to compile strings into ECMAScript code.</p>
 
-  <p>An implementation of HostEnsureCanCompileStrings may complete normally or abruptly. Any abrupt completions will be propagated to its callers. The default implementation of HostEnsureCanCompileStrings is to unconditionally return an empty normal completion.</p>
+  <p>An implementation of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> may complete normally or abruptly. Any abrupt completions will be propagated to its callers. The default implementation of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> is to unconditionally return <del>an empty</del> <ins>a</ins> normal completion <ins>with a value of _bodyText_</ins>.</p>
 
   <emu-note><ins>_goal_ is the production which will be used to parse _bodyText_.  For example, if called via %Function% it might be the grammar symbol |FunctionBody[~Yield, ~Await]| and from %eval% it might be the grammar symbol |Script|.</ins></emu-note>
 
-  <emu-note><ins>Implementations of HostEnsureCanCompileStrings should not coerce _bodyText_ to a string
-  since callers will later do that and HostEnsureCanCompileStrings must not base security decisions
+  <emu-note><ins>Implementations of HostBeforeCompileValue should not coerce _bodyText_ to a string
+  since callers will later do that and HostBeforeCompileValue must not base security decisions
   on both coercions producing the same string.
   Clients may base security decisions on internal slots.</ins></emu-note>
 </emu-clause>
