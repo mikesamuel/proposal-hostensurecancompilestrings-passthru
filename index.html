@@ -1852,9 +1852,26 @@ has runtime-type-information.
 
 <h2>Changes to CreateDynamicFunction</h2>
 
-<p>This change causes parameter names to be stringified even when the
+<p>Note: This change causes parameter names to be stringified even when the
 HostCallout rejects compilation to preserve the property that
-parameter names are stringified before the body text.</p>
+parameter names are stringified before the body text. For example:</p>
+
+<pre><code class="javascript hljs"><span class="hljs-built_in">Function</span>(
+    {
+      toString() {
+        <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'parameter stringified'</span>);
+        <span class="hljs-keyword">return</span> <span class="hljs-string">'x'</span>;
+      }
+    },
+    {
+      toString() {
+        <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'body stringified'</span>);
+        <span class="hljs-keyword">return</span> <span class="hljs-string">'body'</span>;
+      }
+    });</code></pre>
+
+<p>Previously, if CSP prevented this load by raising an EvalError, nothing would be written
+to the console.  With this change, the console logs "parameter stringified."</p>
 
 <emu-clause id="sec-createdynamicfunction-new">
   <h1><span class="secnum">2</span>Runtime Semantics: CreateDynamicFunction ( <var>constructor</var>, <var>newTarget</var>, <var>kind</var>, <var>args</var> )</h1>
