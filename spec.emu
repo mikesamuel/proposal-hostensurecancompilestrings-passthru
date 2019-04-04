@@ -41,7 +41,25 @@ has runtime-type-information.
 1.  The production to use to parse *bodyText*.
 1.  The value of *bodyText* before coercion to a string.
 
+<h2>Changes to HostEnsureCanCompileStrings</h2>
+
+<emu-clause id="sec-hostbeforecompilevalue">
+  <h1><del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> ( _callerRealm_, _calleeRealm_<ins>[, _goal_[, _bodyText_]]</ins>)</h1>
+
+  <p><del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> is an implementation-defined abstract operation that allows host environments to block certain ECMAScript functions which allow developers to compile strings into ECMAScript code.</p>
+
+  <p>An implementation of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> may complete normally or abruptly. Any abrupt completions will be propagated to its callers. The default implementation of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> is to unconditionally return <del>an empty</del> <ins>a</ins> normal completion <ins>with a value of _bodyText_</ins>.</p>
+
+  <p><ins>Any normal completion value from HostBeforeCompileValue should be used by callers instead of the _bodyText_ passed in.</ins></p>
+
+  <emu-note><ins>_goal_ is the production which will be used to parse _bodyText_.  For example, if called via %Function% it might be the grammar symbol |FunctionBody[~Yield, ~Await]| and from %eval% it might be the grammar symbol |Script|.</ins></emu-note>
+</emu-clause>
+
 <h2>Changes to CreateDynamicFunction</h2>
+
+<p>This change causes parameter names to be stringified even when the
+HostCallout rejects compilation to preserve the property that
+parameter names are stringified before the body text.</p>
 
 <emu-clause id="sec-createdynamicfunction-new">
   <h1>Runtime Semantics: CreateDynamicFunction ( _constructor_, _newTarget_, _kind_, _args_ )</h1>
@@ -71,30 +89,20 @@ has runtime-type-information.
       1. Let _parameterGoal_ be the grammar symbol |FormalParameters[+Yield, +Await]|.
       1. Let _fallbackProto_ be `"%AsyncGenerator%"`.
     1. Let _argCount_ be the number of elements in _args_.
-    1. <del>Let _P_ be the empty String.</del>
+    1. Let _P_ be the empty String.
     1. If _argCount_ = 0, let _bodyText_ be the empty String.
-    1. <del>Else if _argCount_ = 1, let _bodyText_ be _args_[0].</del>
-    1. Else _argCount_ <del>&gt;</del> <ins>&ge;</ins> 1,
-      1. <del>Let _firstArg_ be _args_[0]</del>.
-      1. <del>Set _P_ to ? ToString(_firstArg_).</del>
-      1. <del>Let _k_ be 1.
-      1. <del>Repeat, while _k_ &lt; _argCount_ - 1</del>
-        1. <del>Let _nextArg_ be _args_[_k_].</del>
-        1. <del>Let _nextArgString_ be ? ToString(_nextArg_).</del>
-        1. <del>Set _P_ to the string-concatenation of the previous value of _P_, `","` (a comma), and _nextArgString_.</del>
-        1. <del>Increase _k_ by 1.</del>
-      1. Let _bodyText_ be _args_[<del>_k_</del> <ins>_argCount_ - 1</ins>].
-    1. <ins>Set _bodyText_ to ! HostBeforeCompileValue(_callerRealm_, _calleeRealm_, <b>_goal_, _bodyText_</b>).</ins>
-    1. <ins>Let _P_ be the empty String.</ins>
-    1. <ins>If _argCount_ &gt; 1,</ins>
-      1. <ins>Let _firstArg_ be _args_[0].</ins>
-      1. <ins>Set _P_ to ? ToString(_firstArg_).</ins>
-      1. <ins>Let _k_ be 1.</ins>
-      1. <ins>Repeat, while _k_ &lt; _argCount_ - 1</ins>
-        1. <ins>Let _nextArg_ be _args_[_k_].</ins>
-        1. <ins>Let _nextArgString_ be ? ToString(_nextArg_).</ins>
-        1. <ins>Set _P_ to the string-concatenation of the previous value of _P_, `","` (a comma), and _nextArgString_.</ins>
-        1. <ins>Increase _k_ by 1.</ins>
+    1. Else if _argCount_ = 1, let _bodyText_ be _args_[0].
+    1. Else _argCount_ &gt; 1,
+      1. Let _firstArg_ be _args_[0].
+      1. Set _P_ to ? ToString(_firstArg_).
+      1. Let _k_ be 1.
+      1. Repeat, while _k_ &lt; _argCount_ - 1
+        1. Let _nextArg_ be _args_[_k_].
+        1. Let _nextArgString_ be ? ToString(_nextArg_).
+        1. Set _P_ to the string-concatenation of the previous value of _P_, `","` (a comma), and _nextArgString_.
+        1. Increase _k_ by 1.
+      1. Let _bodyText_ be _args_[_k_].
+    1. <ins>Set _bodyText_ to ? HostBeforeCompileValue(_callerRealm_, _calleeRealm_, <b>_goal_, _bodyText_</b>).</ins>
     1. Set _bodyText_ to ? ToString(_bodyText_).
     1. Let _parameters_ be the result of parsing _P_, interpreted as UTF-16 encoded Unicode text as described in <emu-xref href="#sec-ecmascript-language-types-string-type"></emu-xref>, using _parameterGoal_ as the goal symbol. Throw a *SyntaxError* exception if the parse fails.
     1. Let _body_ be the result of parsing _bodyText_, interpreted as UTF-16 encoded Unicode text as described in <emu-xref href="#sec-ecmascript-language-types-string-type"></emu-xref>, using _goal_ as the goal symbol. Throw a *SyntaxError* exception if the parse fails.
@@ -144,7 +152,7 @@ has runtime-type-information.
     1. Let _callerRealm_ be _callerContext_'s Realm.
     1. Let _calleeRealm_ be the current Realm Record.
     1. <del>Perform ? HostEnsureCanCompileStrings</del><br>
-       <ins>Set _x_ to HostBeforeCompileValue</ins>(_callerRealm_, _calleeRealm_<ins>, |Script|, _x_</ins>).
+       <ins>Set _x_ to ? HostBeforeCompileValue</ins>(_callerRealm_, _calleeRealm_<ins>, |Script|, _x_</ins>).
     1. Return ? PerformEval(_x_, _calleeRealm_, *false*, *false*).
   </emu-alg>
 </emu-clause>
@@ -168,7 +176,7 @@ has runtime-type-information.
         1. If the source code matching this |CallExpression| is strict mode code, let _strictCaller_ be *true*. Otherwise let _strictCaller_ be *false*.
         1. Let _evalRealm_ be the current Realm Record.
         1. <del>Perform ? HostEnsureCanCompileStrings</del><br>
-           <ins>Set _evalText_ to HostBeforeCompileValue</ins>(_evalRealm_, _evalRealm_<ins>, |Script|, _evalText_</ins>).
+           <ins>Set _evalText_ to ? HostBeforeCompileValue</ins>(_evalRealm_, _evalRealm_<ins>, |Script|, _evalText_</ins>).
         1. Return ? PerformEval(_evalText_, _evalRealm_, _strictCaller_, *true*).
     1. Let _thisCall_ be this |CallExpression|.
     1. Let _tailCall_ be IsInTailPosition(_thisCall_).
@@ -176,19 +184,3 @@ has runtime-type-information.
   </emu-alg>
 </emu-clause>
 
-<h2>Changes to HostEnsureCanCompileStrings</h2>
-
-<emu-clause id="sec-hostbeforecompilevalue">
-  <h1><del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> ( _callerRealm_, _calleeRealm_<ins>[, _goal_[, _bodyText_]]</ins>)</h1>
-
-  <p><del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> is an implementation-defined abstract operation that allows host environments to block certain ECMAScript functions which allow developers to compile strings into ECMAScript code.</p>
-
-  <p>An implementation of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> may complete normally or abruptly. Any abrupt completions will be propagated to its callers. The default implementation of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> is to unconditionally return <del>an empty</del> <ins>a</ins> normal completion <ins>with a value of _bodyText_</ins>.</p>
-
-  <emu-note><ins>_goal_ is the production which will be used to parse _bodyText_.  For example, if called via %Function% it might be the grammar symbol |FunctionBody[~Yield, ~Await]| and from %eval% it might be the grammar symbol |Script|.</ins></emu-note>
-
-  <emu-note><ins>Implementations of HostBeforeCompileValue should not coerce _bodyText_ to a string
-  since callers will later do that and HostBeforeCompileValue must not base security decisions
-  on both coercions producing the same string.
-  Clients may base security decisions on internal slots.</ins></emu-note>
-</emu-clause>
