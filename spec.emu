@@ -9,6 +9,11 @@ stage: 0
 contributors: Mike Samuel
 </pre>
 
+See also the
+<a href="https://github.com/mikesamuel/proposal-hostensurecancompilestrings-passthru">explainer</a>.
+
+<h2> Background</h2>
+
 The <a href="https://wicg.github.com/trusted-types/">Trusted Types proposal</a> seeks
 to double-check risky operations like code loading by checking the runtime type.
 

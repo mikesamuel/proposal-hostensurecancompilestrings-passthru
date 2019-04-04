@@ -1807,6 +1807,12 @@ li.menu-search-result-term:before {
 }
 </style></head><body><div id="menu-toggle">☰</div><div id="menu-spacer"></div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-pins"><div class="menu-pane-header">Pins</div><ul id="menu-pins-list"></ul></div><div class="menu-pane-header">Table of Contents</div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-hostbeforecompilevalue" title="HostEnsureCanCompileStrings HostBeforeCompileValue ( callerRealm, calleeRealm[, goal[, bodyText]])"><span class="secnum">1</span> <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> ( <var>callerRealm</var>, <var>calleeRealm</var><ins>[, <var>goal</var>[, <var>bodyText</var>]]</ins>)</a></li><li><span class="item-toggle-none"></span><a href="#sec-createdynamicfunction-new" title="Runtime Semantics: CreateDynamicFunction ( constructor, newTarget, kind, args )"><span class="secnum">2</span> RS: CreateDynamicFunction ( <var>constructor</var>, <var>newTarget</var>, <var>kind</var>, <var>args</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-eval-x" title="eval ( x )"><span class="secnum">3</span> eval ( <var>x</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-function-calls-runtime-semantics-evaluation" title="Runtime Semantics: Evaluation"><span class="secnum">4</span> RS: Evaluation</a></li><li><span class="item-toggle-none"></span><a href="#sec-copyright-and-software-license" title="Copyright &amp; Software License"><span class="secnum">A</span> Copyright &amp; Software License</a></li></ol></div></div><div id="spec-container"><h1 class="version first">Stage 0 Draft / April 4, 2019</h1><h1 class="title">HostEnsureCanCompileStrings Passthru</h1>
 
+See also the
+
+<a href="https://github.com/mikesamuel/proposal-hostensurecancompilestrings-passthru">explainer</a>.
+
+<h2> Background</h2>
+
 The  <a href="https://wicg.github.com/trusted-types/">Trusted Types proposal</a> seeks
 to double-check risky operations like code loading by checking the runtime type. The Function builtin, whether invoked via [[Construct]] or [[Apply]],
 interprets its last argument as a JS FunctionBody. Step 16 of  <a href="https://www.ecma-international.org/ecma-262/#sec-createdynamicfunction">Runtime Semantics: CreateDynamicFunction</a> says
