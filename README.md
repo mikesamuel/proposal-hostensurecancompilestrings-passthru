@@ -93,14 +93,14 @@ For example, the following function has a blank body, but still has a side effec
 
 ## Host callout should be a two-way street
 
-Trusted Types defines a [default policy](https://wicg.github.io/trusted-types/dist/spec/#default-policy-hdr) which
+Trusted Types defines a [default policy][] which
 is invoked when a string reaches a sink to make it easier to migrate applications that pass around strings.
 
-This policy is invoked when a string value reaches a sink, so any default policy's [`createScript` callback](https://wicg.github.io/trusted-types/dist/spec/#callbackdef-createscriptcallback) is invoked on `eval(myString)`.
+This policy is invoked when a string value reaches a sink, so any default policy's
+[`createScript` callback][createScript callback] is invoked on `eval(myString)`.
 
 If the callback throws an error, then `eval` should be blocked.
-
-If the callback returns a value, *result*, then ToString(*result*) should be used as the source text to parse.
+But if the callback returns a value, *result*, then ToString(*result*) should be used as the source text to parse.
 
 Being able to adjust the code that runs provides the maximum flexibility when dealing with a thorny legacy module
 that might otherwise prevent the entire application from running with XSS protections enabled.
@@ -119,3 +119,5 @@ You can browse the [ecmarkup output][] or browse the [source][].
 [TrustedScript]: https://wicg.github.io/trusted-types/dist/spec/#typedef-trustedscript
 [ecmarkup output]: https://mikesamuel.github.io/proposal-hostensurecancompilestrings-passthru/
 [source]: https://github.com/mikesamuel/proposal-hostensurecancompilestrings-passthru/blob/master/spec.emu
+[default policy]: https://wicg.github.io/trusted-types/dist/spec/#default-policy-hdr
+[createScript callback]: https://wicg.github.io/trusted-types/dist/spec/#callbackdef-createscriptcallback
