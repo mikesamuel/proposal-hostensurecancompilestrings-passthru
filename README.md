@@ -105,6 +105,9 @@ If the callback returns a value, *result*, then ToString(*result*) should be use
 Being able to adjust the code that runs provides the maximum flexibility when dealing with a thorny legacy module
 that might otherwise prevent the entire application from running with XSS protections enabled.
 
+To enable that, this proposal adjusts `eval` and `new Function` to expect return values from the host callout and
+to use those in place of the inputs.
+
 
 ## Possible spec language
 
