@@ -12,10 +12,11 @@ contributors: Mike Samuel
 See also the
 <a href="https://github.com/mikesamuel/proposal-hostensurecancompilestrings-passthru">explainer</a>.
 
-<h2> Background</h2>
+<h2>Background</h2>
 
 The <a href="https://wicg.github.com/trusted-types/">Trusted Types proposal</a> seeks
-to double-check risky operations like code loading by checking the runtime type.
+to double-check risky operations like code loading by requiring that code portions
+have a runtime type that indicates that they have been explicitly trusted.
 
 The Function builtin, whether invoked via [[Construct]] or [[Apply]],
 interprets its last argument as a JS FunctionBody.
@@ -46,44 +47,111 @@ has runtime-type-information.
 1.  The production to use to parse *bodyText*.
 1.  The value of *bodyText* before coercion to a string.
 
+<p>
+Additionally, the
+<a href="https://wicg.github.io/trusted-types/dist/spec/#default-policy-hdr">default policy</a>'s
+<a href="https://wicg.github.io/trusted-types/dist/spec/#callbackdef-createscriptcallback"
+ >`createScript` callback</a> return a value that is used in place of their input.
+For example, if the default policy's `createScript` callback returns `"output"` given
+`"input"` then `eval("input")` would load and run a |ScriptBody| parsed from the source text
+`output`.
+</p>
+
+<pre><code class="html">
+&lt;meta http-equiv="Content-Security-Policy" content="trusted-types default" /&gt;
+&lt;script&gt;
+// Define a default policy that maps the source text `input` to `output`.
+TrustedTypes.createPolicy(
+  'default',
+  {
+    createScript(code) {
+      if (code === 'input') { return 'output'; }
+      throw new Error('blocked script execution');
+    },
+  });
+
+globalThis.input = 1;
+globalThis.output = 2;
+// The source text loaded is `output`
+eval('input') === globalThis.output;  // true
+&lt;/script&gt;
+</code></pre>
+
+<p>
+This proposal adjusts callers of the callback to expect a result and to use it in place
+of the inputs.
+</p>
+
 <h2>Changes to HostEnsureCanCompileStrings</h2>
 
 <emu-clause id="sec-hostbeforecompilevalue">
-  <h1><del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> ( _callerRealm_, _calleeRealm_<ins>[, _goal_[, _bodyText_]]</ins>)</h1>
+  <h1><del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> ( _callerRealm_, _calleeRealm_<ins>, _goal_, _args_</ins>)</h1>
 
   <p><del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> is an implementation-defined abstract operation that allows host environments to block certain ECMAScript functions which allow developers to compile strings into ECMAScript code.</p>
 
-  <p>An implementation of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> may complete normally or abruptly. Any abrupt completions will be propagated to its callers. The default implementation of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins> is to unconditionally return <del>an empty</del> <ins>a</ins> normal completion <ins>with a value of _bodyText_</ins>.</p>
+  <p>An implementation
+  of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins>
+  may complete normally or abruptly. Any abrupt completions will be
+  propagated to its callers. The default implementation
+  of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins>
+  is to unconditionally return <del>an empty</del> <ins>a</ins> normal
+  completion <ins>with a value of _code_</ins>.</p>
 
-  <p><ins>Any normal completion value from HostBeforeCompileValue should be used by callers instead of the _bodyText_ passed in.</ins></p>
+  <p><ins>_args_ must be a list of values.</ins></p>
 
-  <emu-note><ins>_goal_ is the production which will be used to parse _bodyText_.  For example, if called via %Function% it might be the grammar symbol |FunctionBody[~Yield, ~Await]| and from %eval% it might be the grammar symbol |Script|.</ins></emu-note>
-</emu-clause>
+  <p><ins>Any normal completion value from HostBeforeCompileValue must
+  be a list of values.</ins></p>
 
-<h2>Changes to CreateDynamicFunction</h2>
+  <p><ins>Any normal completion value from HostBeforeCompileValue
+  should be used by callers in place of the input _args_.</ins></p>
 
-<p>Note: This change causes parameter names to be stringified even when the
-HostCallout rejects compilation to preserve the property that
-parameter names are stringified before the body text. For example:</p>
+  <emu-note><ins>For `eval` _args_ will have a single element, the
+  source to evaluate.  For MakeDynamicFunction it may have any number
+  of elements that are joined on comma to form source text for
+  |FormalParameters| followed by a body.</ins></emu-note>
 
-<pre><code class="javascript">
-Function(
+  <emu-note><ins>_goal_ is the production which will be used to parse
+  the last element of _args_.  For example, if called via %Function%
+  it might be the grammar symbol |FunctionBody[~Yield, ~Await]| and
+  from %eval% it might be the grammar symbol
+  |Script|.</ins></emu-note>
+
+  <p><ins>Implementations that stringify any element _i_ of _args_ where
+  _i_ &ne; 0 must stringify _args_[_i_-1] before stringifying _args_[_i_].</ins></p>
+
+  <p><ins>Implementations that stringify any element of _args_ should return
+  the stringified result in place of that element where that element informs
+  part of the output.</ins></p>
+
+  <emu-note><ins>This avoids visible side-effects due to multiple
+  stringification of user-defined objects as in:
+
+  <pre><code class="javascript">
+  new Function(
     {
       toString() {
         console.log('parameter stringified');
-        return 'x';
+        return 'x, y';
       }
     },
     {
       toString() {
         console.log('body stringified');
-        return 'body';
+        return 'x + y';
       }
     });
-</code></pre>
+  </code></pre></ins></emu-note>
 
-<p>Previously, if CSP prevented this load by raising an EvalError, nothing would be written
-to the console.  With this change, the console logs "parameter stringified."</p>
+  <p><ins>Implementations must return a single element list when _args_ has
+  a single element and _goal_ is *ScriptBody*.</ins></p>
+
+  <emu-note><ins>This avoids complicating PerformEval.</ins></emu-note>
+</emu-clause>
+
+<h2>Changes to CreateDynamicFunction</h2>
+
+<p>CreateDynamicFunction waits until after it figures out what _kind_ of function it is creating
+and uses the result of the adjusted host callout.</p>
 
 <emu-clause id="sec-createdynamicfunction-new">
   <h1>Runtime Semantics: CreateDynamicFunction ( _constructor_, _newTarget_, _kind_, _args_ )</h1>
@@ -112,6 +180,7 @@ to the console.  With this change, the console logs "parameter stringified."</p>
       1. Let _goal_ be the grammar symbol |AsyncGeneratorBody|.
       1. Let _parameterGoal_ be the grammar symbol |FormalParameters[+Yield, +Await]|.
       1. Let _fallbackProto_ be `"%AsyncGenerator%"`.
+    1. <ins>Set _args_ to ! <b>HostBeforeCompileValue</b>(_callerRealm_, _calleeRealm_, <b>_goal_, _args_</b>).</ins>
     1. Let _argCount_ be the number of elements in _args_.
     1. Let _P_ be the empty String.
     1. If _argCount_ = 0, let _bodyText_ be the empty String.
@@ -126,7 +195,6 @@ to the console.  With this change, the console logs "parameter stringified."</p>
         1. Set _P_ to the string-concatenation of the previous value of _P_, `","` (a comma), and _nextArgString_.
         1. Increase _k_ by 1.
       1. Let _bodyText_ be _args_[_k_].
-    1. <ins>Set _bodyText_ to ? HostBeforeCompileValue(_callerRealm_, _calleeRealm_, <b>_goal_, _bodyText_</b>).</ins>
     1. Set _bodyText_ to ? ToString(_bodyText_).
     1. Let _parameters_ be the result of parsing _P_, interpreted as UTF-16 encoded Unicode text as described in <emu-xref href="#sec-ecmascript-language-types-string-type"></emu-xref>, using _parameterGoal_ as the goal symbol. Throw a *SyntaxError* exception if the parse fails.
     1. Let _body_ be the result of parsing _bodyText_, interpreted as UTF-16 encoded Unicode text as described in <emu-xref href="#sec-ecmascript-language-types-string-type"></emu-xref>, using _goal_ as the goal symbol. Throw a *SyntaxError* exception if the parse fails.
@@ -167,6 +235,8 @@ to the console.  With this change, the console logs "parameter stringified."</p>
 
 <h2>Changes to eval</h2>
 
+<p>%eval% uses the adjusted host callout and finds the source text in its result.</p>
+
 <emu-clause id="sec-eval-x">
   <h1>eval ( _x_ )</h1>
   <p>The `eval` function is the <dfn>%eval%</dfn> intrinsic object. When the `eval` function is called with one argument _x_, the following steps are taken:</p>
@@ -175,13 +245,17 @@ to the console.  With this change, the console logs "parameter stringified."</p>
     1. Let _callerContext_ be the second to top element of the execution context stack.
     1. Let _callerRealm_ be _callerContext_'s Realm.
     1. Let _calleeRealm_ be the current Realm Record.
-    1. <del>Perform ? HostEnsureCanCompileStrings</del><br>
-       <ins>Set _x_ to ? HostBeforeCompileValue</ins>(_callerRealm_, _calleeRealm_<ins>, |Script|, _x_</ins>).
+    1. <ins>Let _args_ be a list containing only _x_.</ins>
+    1. <del>Perform ? HostEnsureCanCompileStrings(_callerRealm_, _calleeRealm_).</del><br>
+       <ins>Set _args_ to ! HostBeforeCompileValue(_callerRealm_, _calleeRealm_, |Script|, _args_).</ins>
+    1. <ins>Set_x_ to ? Get(_args_, 0).</ins>
     1. Return ? PerformEval(_x_, _calleeRealm_, *false*, *false*).
   </emu-alg>
 </emu-clause>
 
 <h2>Changes to direct eval</h2>
+
+<p>Direct eval uses the adjusted host callout and finds the source text in its result.</p>
 
 <emu-clause id="sec-function-calls-runtime-semantics-evaluation">
   <h1>Runtime Semantics: Evaluation</h1>
@@ -199,12 +273,15 @@ to the console.  With this change, the console logs "parameter stringified."</p>
         1. Let _evalText_ be the first element of _argList_.
         1. If the source code matching this |CallExpression| is strict mode code, let _strictCaller_ be *true*. Otherwise let _strictCaller_ be *false*.
         1. Let _evalRealm_ be the current Realm Record.
-        1. <del>Perform ? HostEnsureCanCompileStrings</del><br>
-           <ins>Set _evalText_ to ? HostBeforeCompileValue</ins>(_evalRealm_, _evalRealm_<ins>, |Script|, _evalText_</ins>).
+        1. <ins>Let _args_ be a list containing only _evalText_.</ins>
+        1. <del>Perform ? HostEnsureCanCompileStrings(_evalRealm_, _evalRealm_).</del><br>
+           <ins>Set _args_ to ! HostBeforeCompileValue(_evalRealm_, _evalRealm_, |Script|, _args_).</ins>
+        1. <ins>Set _evalText_ to ? Get(_args_, 0).</ins>
         1. Return ? PerformEval(_evalText_, _evalRealm_, _strictCaller_, *true*).
     1. Let _thisCall_ be this |CallExpression|.
     1. Let _tailCall_ be IsInTailPosition(_thisCall_).
     1. Return ? EvaluateCall(_func_, _ref_, _arguments_, _tailCall_).
   </emu-alg>
+  <p>A |CallExpression| evaluation that executes step 6.a.<ins>ix</ins><del>vii</del> is a <dfn>direct eval</dfn>.</p>
 </emu-clause>
 
