@@ -65,15 +65,45 @@ It makes it easy to separate:
 *  the decisions to trust a chunk of code to load.
 *  the check that an input to a sensitive operator like `eval` is trustworthy.
 
-This allows trust decisions tto be made where the maximum context is
+This allows trust decisions to be made where the maximum context is
 available and allows these decisions to be concentrated in small
 amounts of thoroughly reviewed code
 
 The checks can also be moved into host code so that they reliably happen before
 irrevocable actions like code loading complete.
 
-Specifically, Trusted Types would like to require that the code portion of the
+Specifically, Trusted Types would like to require that the code portions of the
 inputs to %Function% and %eval% are [*TrustedScript*][TrustedScript].
+
+
+## What are code portions
+
+`eval(x)` treats `x` as code.
+
+`new Function(x)` also treates `x` as code.
+
+The parameter list portion of a function can also be code since *FormalParameterList* elements may contain arbitrary default value expressions.
+
+For example, the following function has a blank body, but still has a side effect.
+
+```js
+(new Function('a = alert(1)', ''))()
+```
+
+
+## Host callout should be a two-way street
+
+Trusted Types defines a [default policy](https://wicg.github.io/trusted-types/dist/spec/#default-policy-hdr) which
+is invoked when a string reaches a sink to make it easier to migrate applications that pass around strings.
+
+This policy is invoked when a string value reaches a sink, so any default policy's [`createScript` callback](https://wicg.github.io/trusted-types/dist/spec/#callbackdef-createscriptcallback) is invoked on `eval(myString)`.
+
+If the callback throws an error, then `eval` should be blocked.
+
+If the callback returns a value, *result*, then ToString(*result*) should be used as the source text to parse.
+
+Being able to adjust the code that runs provides the maximum flexibility when dealing with a thorny legacy module
+that might otherwise prevent the entire application from running with XSS protections enabled.
 
 
 ## Possible spec language
