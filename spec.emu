@@ -95,7 +95,7 @@ of the inputs.
   propagated to its callers. The default implementation
   of <del>HostEnsureCanCompileStrings</del> <ins>HostBeforeCompileValue</ins>
   is to unconditionally return <del>an empty</del> <ins>a</ins> normal
-  completion <ins>with a value of _code_</ins>.</p>
+  completion <ins>with a value of _args_</ins>.</p>
 
   <p><ins>_args_ must be a list of values.</ins></p>
 
