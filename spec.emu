@@ -248,7 +248,7 @@ and uses the result of the adjusted host callout.</p>
     1. <ins>Let _args_ be a list containing only _x_.</ins>
     1. <del>Perform ? HostEnsureCanCompileStrings(_callerRealm_, _calleeRealm_).</del><br>
        <ins>Set _args_ to ! HostBeforeCompileValue(_callerRealm_, _calleeRealm_, |Script|, _args_).</ins>
-    1. <ins>Set_x_ to ? Get(_args_, 0).</ins>
+    1. <ins>Set _x_ to ? Get(_args_, 0).</ins>
     1. Return ? PerformEval(_x_, _calleeRealm_, *false*, *false*).
   </emu-alg>
 </emu-clause>
