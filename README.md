@@ -4,7 +4,7 @@
 
 Champion(s): mikesamuel <br>
 Author(s): mikesamuel <br>
-Stage: 0
+Stage: **Obsolete.  Merged into [dynamic-code-brand-checks](https://github.com/mikesamuel/dynamic-code-brand-checks)**
 
 ## Motivation
 
